@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm exec *)",
+      "Bash(curl -s https://us-central1-wordsmith-vocabulary-builder.cloudfunctions.net/healthCheck)"
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Service Health</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-inner">
+        <div class="header-left">
+          <div class="eyebrow">Service Health</div>
+          <div class="rollup" id="rollup">
+            <span class="dot" id="rollup-dot"></span>
+            <h1 class="rollup-text" id="rollup-text">Loading…</h1>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="stats-chip" id="stats-chip">— / — healthy</div>
+          <button class="btn" id="refresh-btn" type="button">↻ Refresh</button>
+          <button class="btn" id="theme-btn" type="button">☀ Light</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="grid" id="grid"></main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
