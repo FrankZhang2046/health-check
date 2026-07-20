@@ -4,60 +4,63 @@
 
 `health-check` is a personal Vite + TypeScript static SPA that renders the health of `https://us-central1-wordsmith-vocabulary-builder.cloudfunctions.net/healthCheck`. It currently only runs locally via `pnpm dev`. Goal: put it on a URL Frank can hit from anywhere, with auto-deploys on push.
 
-Decisions already made in the conversation preceding this plan:
-- Platform: **Vercel** (over Firebase Hosting / Netlify). No lock-in to Firebase since the function is a public HTTPS endpoint.
-- No custom domain — the `*.vercel.app` subdomain is fine.
-- **Git workflow is required** — deploys happen on `git push`, not from a local CLI upload.
-- Direct cross-origin `fetch` to the function is fine; no proxy/rewrite needed. (The function already works from `vite dev`, so CORS is presumably handled.)
+Decisions made in the preceding conversation:
+- **Platform:** Vercel (over Firebase Hosting / Netlify). No lock-in to Firebase since the function is a public HTTPS endpoint.
+- **CI/CD approach:** Option A — Vercel's built-in Git integration. **No `.github/workflows/*.yml` file, no `VERCEL_TOKEN` secret management.** Vercel runs `pnpm install && pnpm build` in its own build container on every push and PR.
+- **No custom domain** — the `*.vercel.app` subdomain is fine.
+- **Direct cross-origin `fetch`** to the function is fine; no proxy/rewrite needed. (Works from `vite dev` today, so CORS is presumably handled.)
+
+## Current state (already done)
+
+- Repo is initialized and pushed to `git@github.com:FrankZhang2046/health-check.git`.
+- Working tree is clean; `main` is up to date with `origin`.
+- `README.md` (including the Health API Formatting section) is committed.
+- `.gitignore` correctly excludes `node_modules/` and `dist/`.
 
 ## Approach
 
-Initialize git, push to a new private GitHub repo, connect the repo to Vercel, let Vercel auto-detect Vite and deploy. No `vercel.json` needed — Vite is a first-class framework preset.
+Connect the existing GitHub repo to Vercel via the dashboard. Vercel auto-detects the Vite preset, runs the build, deploys, and thereafter auto-deploys on every push to `main` and gives a preview URL per PR. No repo changes required.
 
 ## Steps
 
-1. **Initialize git and make the first commit**
-   - `cd /Users/frankzhang/Documents/Coding/health-check`
-   - Verify `.gitignore` covers `node_modules/` and `dist/` (it already does — confirmed at `.gitignore`).
-   - `git init`
-   - `git add .` then `git commit -m "Initial commit"`.
-
-2. **Create a private GitHub repo and push**
-   - Prefer `gh repo create health-check --private --source=. --push` (requires `gh` logged in). Falls back to creating the repo in the GitHub UI and `git remote add origin ... && git push -u origin main` if `gh` isn't available.
-
-3. **Connect the repo to Vercel**
-   - At https://vercel.com/new, import the `health-check` repo.
-   - Vercel auto-detects **Vite**. Confirm the detected settings match:
-     - Framework preset: `Vite`
-     - Build command: `pnpm build` (repo has a `build` script that runs `tsc && vite build` — see `package.json:8`)
+1. **Connect the repo to Vercel.**
+   - Go to https://vercel.com/new (log in with GitHub if needed).
+   - Grant the Vercel GitHub App access to `FrankZhang2046/health-check` if not already granted.
+   - Click **Import** on `health-check`.
+   - Confirm the auto-detected settings:
+     - Framework preset: **Vite**
+     - Build command: `pnpm build` (from `package.json:8` — runs `tsc && vite build`)
      - Output directory: `dist`
-     - Install command: `pnpm install` (Vercel detects pnpm from `pnpm-lock.yaml`)
-   - No env vars needed — the function URL is hard-coded in `src/services.ts:11`.
-   - Click Deploy.
+     - Install command: `pnpm install` (Vercel picks pnpm up from `pnpm-lock.yaml`)
+     - Node version: 20.x (Vercel default is fine)
+   - No environment variables to add — the function URL is hard-coded in `src/services.ts:11`.
+   - Click **Deploy**.
 
-4. **Confirm auto-deploys**
-   - After the first deploy, any `git push` to the default branch triggers a production deploy. PRs get preview URLs automatically. No further config needed.
+2. **Verify auto-deploy is on.**
+   - In the Vercel project → **Settings → Git**, confirm:
+     - Production branch: `main`
+     - Deploy hooks on push: enabled (default)
+     - PR previews: enabled (default)
 
 ## Files touched
 
-- **New:** `.git/` (via `git init`)
-- **No config files added** — `vercel.json` is not needed for this Vite preset.
-- `package.json`, `src/`, `index.html`, `tsconfig.json`, `.gitignore` — unchanged.
+None. **No `vercel.json`, no GitHub Actions workflow.** Option A intentionally keeps the repo clean and lets Vercel own the build.
 
 ## Verification
 
-1. Vercel build log shows `tsc && vite build` succeeding and `dist/` uploaded.
-2. Open the assigned `https://health-check-<hash>.vercel.app` URL.
-3. Confirm the dashboard renders:
+1. Vercel build log for the first deploy shows `tsc && vite build` succeeding and `dist/` uploaded.
+2. Open the assigned `https://<project>-<hash>.vercel.app` URL. Confirm:
    - Header shows "Service Health" and a status rollup (not stuck on "Loading…").
-   - The Wordforge card appears and shows a health result (either healthy JSON or a 503 payload — both are expected outcomes, per `src/health.ts:16`).
-   - "↻ Refresh" re-fetches; the timestamp updates.
-   - "☀ Light" toggles the theme.
-4. Open devtools → Network: the request to `us-central1-wordsmith-vocabulary-builder.cloudfunctions.net/healthCheck` succeeds (200 or 503 with JSON body). If it fails with a CORS error, we'll need to either add CORS to the function or fall back to a Vercel rewrite — but this is not expected since the fetch works locally today.
-5. Make a trivial commit (e.g., README tweak), push, confirm Vercel kicks off a new deploy automatically.
+   - The Wordforge card renders a health result (either healthy JSON or a 503 payload — both are expected per `src/health.ts:16`).
+   - **↻ Refresh** re-fetches and the timestamp updates.
+   - **☀ Light** toggles the theme.
+3. Devtools → Network: the request to `us-central1-wordsmith-vocabulary-builder.cloudfunctions.net/healthCheck` succeeds (200 or 503 with JSON body). If it fails with a CORS error, add CORS headers to the function or fall back to a Vercel rewrite in a follow-up — not expected since the fetch works locally today.
+4. Push a trivial commit (e.g., a README typo fix) to `main`. Confirm Vercel automatically kicks off a new production deploy within a few seconds.
+5. Open a throwaway PR from a branch. Confirm Vercel comments a preview URL on the PR and the preview loads correctly.
 
 ## Out of scope
 
-- Custom domain (Frank confirmed not needed).
-- Function-URL proxy / hiding the endpoint (Frank confirmed direct fetch is fine).
+- GitHub Actions workflow file (Option B/C rejected in favor of Option A).
+- Custom domain.
+- Function-URL proxy / hiding the endpoint.
 - Monitoring/uptime alerts on the dashboard itself.
