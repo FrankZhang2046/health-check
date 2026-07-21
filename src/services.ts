@@ -10,4 +10,9 @@ export const SERVICES: Service[] = [
     name: 'Wordforge',
     url: 'https://us-central1-wordsmith-vocabulary-builder.cloudfunctions.net/healthCheck',
   },
+  {
+    id: 'pillow-chat',
+    name: 'Pillow Chat',
+    url: 'https://pillowchat.app/healthCheck',
+  },
 ];
